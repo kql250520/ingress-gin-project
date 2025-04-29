@@ -32,5 +32,6 @@ func main() {
 	namespace := "migu-p2c"
 	ingressName := "test-ingress"
 	r.GET("/get-ingress", handlers.HandleGetIngress(k8sUrl, k8sToken, namespace, ingressName))
+	r.GET("/delete-ingress", handlers.HandleDeleteIngress(k8sUrl, k8sToken, namespace, ingressName))
 	r.Run(":8080")
 }

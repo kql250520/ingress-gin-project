@@ -61,7 +61,7 @@ func HandleCreateIngress(k8url, k8token string) gin.HandlerFunc {
 
 		result, err := CreateIngress(clientset, "migu-p2c", ingress)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create ingress"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create ingress:", "details": err.Error()})
 			return
 		}
 
@@ -69,7 +69,7 @@ func HandleCreateIngress(k8url, k8token string) gin.HandlerFunc {
 	}
 }
 
-// 创建Ingress
+// CreateIngress
 func CreateIngress(clientset *kubernetes.Clientset, namespace string, ingress *v1.Ingress) (*v1.Ingress, error) {
 	ingressClient := clientset.NetworkingV1().Ingresses(namespace)
 	result, err := ingressClient.Create(context.TODO(), ingress, metav1.CreateOptions{})
@@ -80,19 +80,19 @@ func CreateIngress(clientset *kubernetes.Clientset, namespace string, ingress *v
 	return result, nil
 }
 
-// 处理GetIngress
+// 处理GetIngress, "HandleDeleteIngress 函数是一个高阶函数，也就是它返回另一个函数"
 func HandleGetIngress(k8url, k8token, namespace, ingressName string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		//调用k8sclient方法，新建NewKubernetes客户端
 		clientset, err := k8sclient.NewKubernetesClient(k8url, k8token)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create Kubernetes client"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create Kubernetes client", "details": err.Error()})
 			return
 		}
 
 		result, err := GetIngress(clientset, namespace, ingressName)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get ingress"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get ingress", "details": err.Error()})
 			return
 		}
 
@@ -100,7 +100,7 @@ func HandleGetIngress(k8url, k8token, namespace, ingressName string) gin.Handler
 	}
 }
 
-// 查询Ingress
+// GetIngress
 func GetIngress(clientset *kubernetes.Clientset, namespace, ingressName string) (*v1.Ingress, error) {
 	ingressClient := clientset.NetworkingV1().Ingresses(namespace)
 	result, err := ingressClient.Get(context.TODO(), ingressName, metav1.GetOptions{})
@@ -109,4 +109,42 @@ func GetIngress(clientset *kubernetes.Clientset, namespace, ingressName string) 
 		return nil, err
 	}
 	return result, nil
+}
+
+// 处理DeleteIngress, "HandleDeleteIngress 函数是一个高阶函数，也就是它返回另一个函数"
+func HandleDeleteIngress(k8url, k8token, namespace, ingressName string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		//调用k8sclient方法，新建NewKubernetes客户端
+		clientset, err := k8sclient.NewKubernetesClient(k8url, k8token)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create Kubernetes client", "details": err.Error()})
+			return
+		}
+
+		err = DeleteIngress(clientset, namespace, ingressName)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to HandleDeleteIngress ingress", "details": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Ingress HandleDeleteIngress successfully"})
+		log.Printf("Success to Delete ingress: %s", ingressName)
+	}
+}
+
+// DeleteIngress
+func DeleteIngress(clientset *kubernetes.Clientset, namespace, ingressName string) error {
+	ingressClient := clientset.NetworkingV1().Ingresses(namespace)
+
+	// 首先查询有无此ingress
+	_, err := GetIngress(clientset, namespace, ingressName)
+	if err != nil {
+		return err
+	}
+
+	err = ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
+	if err != nil {
+		log.Printf("Failed to Delete ingress: %v", err)
+	}
+	return err
 }
