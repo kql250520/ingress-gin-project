@@ -1,1 +1,1 @@
-# ingress-gin-project project for create delete get the ingress resources of kubernetes
+# ingress-gin-project project for create delete and get the ingress resources of kubernetes
